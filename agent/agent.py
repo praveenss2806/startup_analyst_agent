@@ -1,13 +1,11 @@
-from google.adk.agents import Agent
+from google.adk.agents import SequentialAgent
 
-root_agent = Agent(
-    name="greeting_agent",
-    model="gemini-2.5-flash",
+from .sub_agents.file_ingestion_agent.agent import data_ingestion_agent
+
+root_agent = SequentialAgent(
+    name="startup_analyst_agent",
     description=(
-        "This is a greeting agent that greets the user by their name."
+        "This is a startup analyst agent that helps analyze startup data and provide insights."
     ),
-    instruction="""
-    You are a helpful assistant that greets the user. 
-    Ask for the user's name and greet them by name.
-    """,
+    sub_agents=[data_ingestion_agent]
 )
