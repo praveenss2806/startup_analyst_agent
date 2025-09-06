@@ -181,12 +181,7 @@ def ingest_document(file_path):
 
 if __name__ == '__main__':
     # Define the path to your resources directory
-    resources_path = '/Users/kirupa/Documents/projects/agenticai/genAIHackTrial/resources_subAgentA'
-    
-    # Define the GCS bucket and folders
-    #gcs_bucket = "genai-hackathon-2025"
-    #gcs_upload_folder = 'temp_uploads/'
-    #gcs_output_folder = 'vision-output/'
+    resources_path = '/Users/p0s08o6/Desktop/projects/Startup Analyst/startup_analyst_agent/agent/input'
     
     # Loop through all files in the resources directory
     for filename in os.listdir(resources_path):
@@ -206,7 +201,7 @@ if __name__ == '__main__':
         PROJECT_ID = "quiet-sum-470418-r7"
         LOCATION = "us"
         PROCESSOR_ID = "abb1ab40cbac8a9c"
-        FILE_PATH = f"/Users/kirupa/Documents/projects/agenticai/genAIHackTrial/resources_subAgentA/{filename}" # e.g., "NVCPitchDeckTemplate.pdf"
+        FILE_PATH = local_file_path
 
         if file_extension in ['.pdf', '.tiff']:
             extracted_text = ocr_pdf_document(PROJECT_ID, LOCATION, PROCESSOR_ID, FILE_PATH)
