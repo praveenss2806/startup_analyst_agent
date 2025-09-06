@@ -1,6 +1,6 @@
 from google.adk.agents import Agent
 
-from ...tools.store_to_state_agent.result_to_state import result_to_state
+from ...tools.store_to_state_tools.result_to_state import result_to_state
 
 prompt = """
 You are a benchmark agent that performs comprehensive competitive analysis and benchmarking for startups based on previously gathered data.
