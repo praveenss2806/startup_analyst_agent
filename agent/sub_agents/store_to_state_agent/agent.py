@@ -1,6 +1,6 @@
 from google.adk.agents import Agent
 
-from ...tools.benchmark_agent.result_to_state import result_to_state
+from ...tools.store_to_state_agent.result_to_state import result_to_state
 
 prompt = """
 You are a benchmark agent that performs comprehensive competitive analysis and benchmarking for startups based on previously gathered data.
@@ -11,8 +11,8 @@ Instructions:
 """
 
 # Create the agent with the tools
-benchmark_agent = Agent(
-    name="benchmark_agent",
+store_to_state_agent = Agent(
+    name="store_to_state_agent",
     model="gemini-2.5-flash",
     description=(
         "This is a benchmark agent that performs comprehensive competitive analysis and benchmarking "
