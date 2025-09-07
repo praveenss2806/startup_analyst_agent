@@ -4,8 +4,6 @@ from google.adk.tools import ToolContext
 
 def result_to_state(result_list: str, tool_context: ToolContext) -> Dict[str, Any]:
     """
-    Stores the benchmark analysis result in the state.
-
     Args:
         result_list (str): JSON string containing benchmark analysis results.
         tool_context (ToolContext): The tool context containing state information.
@@ -18,6 +16,8 @@ def result_to_state(result_list: str, tool_context: ToolContext) -> Dict[str, An
         # Parse the JSON string and store it in the state
         benchmark_data = json.loads(result_list)
         tool_context.state['benchmark_analysis_results'] = benchmark_data
+        print("company_name: ",benchmark_data["target_startup"]["company_name"])
+        tool_context.state['company_name'] = benchmark_data["target_startup"]["company_name"]
 
         return {
             "status": "success",
