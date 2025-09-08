@@ -27,8 +27,8 @@ def upload_pdf_to_gcs(bucket_name, source_file_path, destination_blob_name):
 # Replace these with your actual bucket name, local file path, and desired blob name
 if __name__ == "__main__":
     your_bucket_name = "genai-hackathon-2025"
-    local_pdf_path = "/Users/kirupa/Documents/projects/agenticai/genAIHackTrial/sample.png"
-    gcs_file_name = "sample_pitchDeck.pdf"
+    local_pdf_path = "/Users/p0s08o6/Desktop/projects/Startup Analyst/startup_analyst_agent/agent/input/slidesaver.app_jcptpt.pdf"
+    gcs_file_name = "slidesaver.app_jcptpt.pdf"
     
     gcs_uri = upload_pdf_to_gcs(your_bucket_name, local_pdf_path, gcs_file_name)
     print(f"The GCS URI for the uploaded file is: {gcs_uri}")

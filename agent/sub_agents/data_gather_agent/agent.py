@@ -89,5 +89,5 @@ data_gather_agent = Agent(
         "hiring data, and traction signals for startups and their competitors, returning structured JSON data."
     ),
     instruction=prompt,
-    tools=[google_search],  # use wrapped tool
+    tools=[google_search],
 )

@@ -1,18 +1,27 @@
 import json
+from typing import Dict, Any
+from google.adk.tools import ToolContext
 
-def convert_json_to_json_lines(input_file_path, output_file_path):
+def convert_json_to_json_lines(tool_context: ToolContext) -> Dict[str, Any]:
     """
-    Parses a single JSON object file and writes its contents
-    as multiple JSON Lines to a new file.
+    Converts structured data from the tool context state into JSON Lines format.
     
     Args:
-        input_file_path (str): The path to the original single-object JSON file.
-        output_file_path (str): The path to the new JSON Lines output file.
+        tool_context (ToolContext): The tool context containing state information with 'structured_data'.
+        
+    Returns:
+        Dict[str, Any]: A dictionary containing:
+            - status: success or failure
+            - rows_converted: number of rows converted (on success)
+            - jsonl_data: list of JSON strings in JSONL format (on success)
+            - error: error message (on failure)
     """
     try:
-        with open(input_file_path, 'r') as f:
-            data = json.load(f)
-
+        # Get structured data from state
+        if 'benchmark_analysis_results' not in tool_context.state:
+            return {"status": "failure", "error": "No 'structured_data' found in tool context state"}
+        
+        data = tool_context.state['benchmark_analysis_results']
         rows = []
         
         # Extract the target startup data and add it as a row
@@ -24,25 +33,23 @@ def convert_json_to_json_lines(input_file_path, output_file_path):
             for competitor in data['competitors']:
                 rows.append(competitor)
         
-        # Write the prepared data to the output file in JSON Lines format
-        with open(output_file_path, 'w') as f:
-            for row in rows:
-                f.write(json.dumps(row) + '\n')
+        # Convert rows to JSONL format
+        jsonl_lines = []
+        for row in rows:
+            jsonl_lines.append(json.dumps(row))
         
-        print(f"Successfully converted data to JSON Lines and saved to '{output_file_path}'")
+        # Store the entire JSONL result in tool context state
+        tool_context.state['jsonl_data'] = jsonl_lines
+        tool_context.state['jsonl_conversion'] = {
+            'rows_converted': len(rows)
+        }
         
-    except FileNotFoundError:
-        print(f"Error: The file at '{input_file_path}' was not found.")
-    except json.JSONDecodeError:
-        print(f"Error: The file at '{input_file_path}' is not a valid JSON file.")
+        return {
+            "status": "success",
+            "rows_converted": len(rows),
+            "jsonl_data": jsonl_lines
+        }
+        
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-
-# --- Example Usage ---
-# Replace with the actual path to your JSON file
-INPUT_JSON_FILE = "/Users/kirupa/Documents/projects/agenticai/genAIHackTrial/sample.json"
-# This will be the new file in JSON Lines format
-OUTPUT_JSON_LINES_FILE = 'output_for_bigquery.jsonl'
-
-# Run the conversion
-convert_json_to_json_lines(INPUT_JSON_FILE, OUTPUT_JSON_LINES_FILE)
+        error_msg = f"An unexpected error occurred: {str(e)}"
+        return {"status": "failure", "error": error_msg}
