@@ -1,4 +1,4 @@
-google-adk
+google-adk==1.13.0
 
 # Document processing dependencies
 PyMuPDF
@@ -16,3 +16,5 @@ google-api-core
 # Document format processing
 python-docx
 extract-msg
+
+db-dtypes
