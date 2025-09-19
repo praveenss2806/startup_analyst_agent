@@ -1,20 +1,16 @@
-google-adk==1.13.0
-
-# Document processing dependencies
+google-cloud-aiplatform[agent_engines,adk]>=1.112
 PyMuPDF
 Pillow
 pytesseract
 pandas
 python-pptx
-
-# Google Cloud dependencies for Document AI OCR
 google-cloud-documentai
 google-cloud-vision
 google-cloud-storage
 google-api-core
-
-# Document format processing
 python-docx
 extract-msg
-
 db-dtypes
+pydantic==2.11.7
+cloudpickle==3.1.1
+google-generativeai
