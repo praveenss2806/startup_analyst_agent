@@ -1,7 +1,5 @@
 from google.adk.agents import Agent
 
-from ...tools.file_ingestion_tools.pdf_ingestion_tool import pdf_ingestion_tool
-from ...tools.file_ingestion_tools.ppt_ingestion_tool import ppt_ingestion_tool
 from ...tools.file_ingestion_tools.document_ai_ocr_tool import document_ai_ocr_tool
 
 prompt = """

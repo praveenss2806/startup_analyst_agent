@@ -92,7 +92,11 @@ def compute_market_benchmarks(df: pd.DataFrame) -> Dict[str, Any]:
     return metrics_df.median(numeric_only=True).to_dict()
 
 
-# --- BigQuery details --
+# --- BigQuery details ---
+# bq_client = bigquery.Client()
+# PROJECT_ID = "quiet-sum-470418-r7"
+# DATASET = "genai_hack_startup_analysis"
+# TABLE = "startup_analysis"
 
 class BenchmarkResponse(BaseModel):
     company_name: str
@@ -108,11 +112,10 @@ def get_benchmark(company_name: str, tool_context: ToolContext) -> Dict[str, Any
     # Query all data from the table to perform a market-wide benchmark
     # Note: This is inefficient for a very large dataset, but necessary
     # since there is no 'sector' field to filter by.
+    bq_client = bigquery.Client()
     PROJECT_ID = "quiet-sum-470418-r7"
-    bq_client = bigquery.Client(project=PROJECT_ID)
     DATASET = "genai_hack_startup_analysis"
     TABLE = "startup_analysis"
-
     query_all_data = f"""
     SELECT *
     FROM `{PROJECT_ID}.{DATASET}.{TABLE}`
@@ -142,5 +145,6 @@ def get_benchmark(company_name: str, tool_context: ToolContext) -> Dict[str, Any
         sector_median=market_median,
     ).model_dump_json()
     print(response)
+    tool_context.state['benchmark_data'] = response
     return response
 
