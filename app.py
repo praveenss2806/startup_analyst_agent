@@ -193,5 +193,5 @@ async def getStartupAnalysis(
 
 if __name__ == "__main__":
     uvicorn.run(
-        "run:app", host="localhost", port=8080, http="h11", reload=True
+        "app:app", host="localhost", port=8080, http="h11", reload=True
     )
