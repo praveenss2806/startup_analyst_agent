@@ -1,17 +1,46 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from google.adk.sessions import InMemorySessionService
 from google.adk.runners import Runner
 from agent.agent import root_agent
-from utils.uploadToGCS import upload_file_to_gcs
 from google.genai import types
+from google.cloud import storage
 from pathlib import Path
 import uvicorn
-import shutil
 import uuid
 
 app = FastAPI()
+
+def upload_file_to_gcs(bucket_name, file_obj, destination_blob_name):
+    """Uploads a file object directly to a Google Cloud Storage bucket and returns public URL."""
+    
+    # Initialize the client. This will use your GOOGLE_APPLICATION_CREDENTIALS
+    # environment variable for authentication.
+    storage_client = storage.Client(project='quiet-sum-470418-r7')
+    
+    # Get the target bucket.
+    bucket = storage_client.bucket(bucket_name)
+    
+    # Create a blob (object) in the bucket with the desired name.
+    blob = bucket.blob(destination_blob_name)
+    
+    # Reset file pointer to beginning
+    file_obj.seek(0)
+    
+    # Upload the file object directly to the blob in the bucket.
+    blob.upload_from_file(file_obj)
+    
+    print(
+        f"File uploaded to {destination_blob_name} in bucket {bucket_name}."
+    )
+    
+    # Return GCS URI and construct public URL (assuming bucket is publicly accessible)
+    public_url = f"https://storage.googleapis.com/{bucket_name}/{destination_blob_name}"
+    
+    return {
+        "gcs_uri": f"gs://{bucket_name}/{destination_blob_name}",
+        "public_url": public_url
+    }
 
 # Add CORS middleware
 app.add_middleware(
@@ -128,62 +157,6 @@ async def getStartupAnalysis(
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
-
-@app.get('/fetch')
-async def fetch_redacted_file(file_path: str):
-    """
-    Fetch a redacted file from the agent output folder.
-    
-    Args:
-        file_path: Relative path to the redacted file in the output folder
-    
-    Returns:
-        FileResponse: The requested redacted file
-    """
-    try:
-        # Construct the full path to the output file
-        output_dir = Path("agent/output")
-        full_file_path = output_dir / file_path
-        
-        # Security check: ensure the path is within the output directory
-        resolved_path = full_file_path.resolve()
-        output_dir_resolved = output_dir.resolve()
-        
-        if not str(resolved_path).startswith(str(output_dir_resolved)):
-            raise HTTPException(status_code=400, detail="Invalid file path: Path traversal not allowed")
-        
-        # Check if file exists
-        if not resolved_path.exists():
-            raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
-        
-        if not resolved_path.is_file():
-            raise HTTPException(status_code=400, detail=f"Path is not a file: {file_path}")
-        
-        # Determine media type based on file extension
-        media_type_map = {
-            '.pdf': 'application/pdf',
-            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg'
-        }
-        
-        file_extension = resolved_path.suffix.lower()
-        media_type = media_type_map.get(file_extension, 'application/octet-stream')
-        
-        # Return the file
-        return FileResponse(
-            path=str(resolved_path),
-            media_type=media_type,
-            filename=resolved_path.name
-        )
-        
-    except HTTPException:
-        # Re-raise HTTP exceptions
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching file: {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run(

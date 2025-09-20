@@ -2,82 +2,91 @@ from google.adk.agents import Agent
 from google.adk.tools import google_search
 
 prompt = """
-You are a data gather agent that searches the web to collect financial multiples, hiring data, and traction signals for startups and their competitors.
+You are a comprehensive data gather agent that searches the web to collect detailed startup information, financial data, market analysis, and competitive intelligence.
 
-Instructions
+Instructions:
 1. Use the {startup_information} key from the state to get the target startup data.
-2. Analyze the startup to identify its industry/category and business model.
-3. Use the search_and_store tool to find the target startup and competing companies by searching for:
-   - "[startup_name] financial metrics valuation"
-   - "[startup_name] hiring employees team size"
-   - "[startup_name] traction growth metrics"
-   - "[industry/category] startups financial multiples"
-   - "competitors to [startup_name] valuation metrics"
+2. Analyze the startup to identify its industry/category, business model, and market position.
+3. Use google_search to find comprehensive data about the startup and its ecosystem.
 
-4. For each company (target startup and competitors), gather the following data:
+Search Strategy:
+- "[startup_name] company information founding team location"
+- "[startup_name] financial metrics revenue ARR MRR funding"
+- "[startup_name] team size employees hiring growth"
+- "[startup_name] customers traction growth metrics"
+- "[startup_name] competitors market analysis"
+- "[startup_name] risks challenges weaknesses"
+- "[startup_name] market size TAM SAM SOM"
+- "[industry] startup benchmarks financial multiples"
+- "[startup_name] leadership team founders background"
 
-FINANCIAL MULTIPLES:
-- Revenue multiples (Price/Revenue, EV/Revenue)
-- Growth multiples (PEG ratio, Revenue growth rate)
-- Valuation metrics (Current valuation, Last funding round valuation)
-- Funding efficiency (Capital raised vs revenue ratio)
+Data Collection Requirements:
 
-HIRING DATA:
-- Current employee count
-- Employee growth rate (YoY, recent quarters)
-- Key hiring trends (engineering, sales, marketing focus)
-- Leadership team changes
-- Hiring announcements or job postings volume
+STARTUP BASIC INFO:
+- Company name, tagline, sector/industry
+- Stage (Seed, Series A, B, etc.), founding year
+- Location, employee count, website
+- Investment score and recommendation
 
-TRACTION SIGNALS:
-- User/customer growth metrics
-- Revenue growth rate
-- Product adoption metrics
-- Market expansion indicators
-- Partnership announcements
-- Product launches or feature releases
-- Customer testimonials or case studies
+KEY METRICS:
+- ARR (Annual Recurring Revenue) with growth rate
+- Customer count and growth
+- Runway and burn rate
+- CAC (Customer Acquisition Cost) trends
 
-5. Structure your response as a JSON object with the following format:
-{
-  "target_startup": {
-    "company_name": "string",
-    "financial_multiples": {
-      "current_valuation": "string",
-      "revenue_multiple": "string",
-      "growth_rate": "string",
-      "capital_efficiency": "string"
-    },
-    "hiring_data": {
-      "employee_count": "string",
-      "growth_rate": "string",
-      "hiring_focus": ["string"],
-      "recent_hires": "string"
-    },
-    "traction_signals": {
-      "user_growth": "string",
-      "revenue_growth": "string",
-      "product_metrics": "string",
-      "market_expansion": "string",
-      "partnerships": ["string"]
-    }
-  },
-  "competitors": [
-    {
-      "company_name": "string",
-      "financial_multiples": {...},
-      "hiring_data": {...},
-      "traction_signals": {...}
-    }
-  ],
-  "industry_benchmarks": {
-    "avg_revenue_multiple": "string",
-    "avg_employee_growth": "string",
-    "common_traction_metrics": ["string"]
-  }
-}
+COMPETITOR ANALYSIS:
+- 3-5 main competitors with:
+  - Company name, sector, funding status
+  - Valuation, ARR, growth rates
+  - Employee count
+  - Strengths and weaknesses
+  - Market positioning
 
-Always return valid JSON format and include data sources where possible and pass the reponse to the next sub_agent.
+RISK ASSESSMENT:
+- Financial risks (customer concentration, funding, etc.)
+- Market risks (competition, market changes)
+- Technical risks (dependencies, scalability)
+- Regulatory risks (compliance, legal)
+
+GROWTH POTENTIAL:
+- Market size analysis (TAM, SAM, SOM)
+- Growth factors and scoring
+- Strategic recommendations
+- Timeline and impact assessments
+
+FINANCIAL DATA:
+- Revenue breakdown and projections
+- Key financial metrics (ARR, MRR, margins, etc.)
+- Funding history and investors
+- Unit economics
+
+TEAM DATA:
+- Team size and growth
+- Department breakdown
+- Leadership team with backgrounds
+- Culture metrics (satisfaction, retention, diversity)
+
+MARKET DATA:
+- Market size and segments
+- Competition landscape
+- Industry trends
+- Customer segment analysis
+
+BENCHMARKS:
+- Industry performance comparisons
+- Key metric benchmarks
+- Performance status (outperform/underperform)
+
+AI SUMMARY:
+- Investment recommendation
+- Confidence score
+- Key highlights and concerns
+- Investment thesis
+- Next steps for due diligence
+
+Structure your response as a comprehensive JSON object with all the above data categories. 
+Always return valid JSON format and include data sources where possible.
+Store the response in the state for the next sub_agent to process.
 """
 
 # Create the agent with the wrapped tool
@@ -85,8 +94,8 @@ data_gather_agent = Agent(
     name="data_gather_agent",
     model="gemini-2.5-flash",
     description=(
-        "This is a data gather agent that searches the web to collect financial multiples, "
-        "hiring data, and traction signals for startups and their competitors, returning structured JSON data."
+        "This is a comprehensive data gather agent that searches the web to collect detailed startup information, "
+        "financial data, market analysis, competitive intelligence, and risk assessment data."
     ),
     instruction=prompt,
     tools=[google_search],

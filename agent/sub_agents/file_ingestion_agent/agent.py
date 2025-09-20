@@ -1,14 +1,12 @@
 from google.adk.agents import Agent
 
-from ...tools.file_ingestion_tools.pdf_ingestion_tool import pdf_ingestion_tool
-from ...tools.file_ingestion_tools.ppt_ingestion_tool import ppt_ingestion_tool
-from ...tools.file_ingestion_tools.document_ai_ocr_tool import document_ai_ocr_tool
+from .file_ingestion_tool import file_ingestion_tool
 
 prompt = """
 You are a file ingestion agent capable of extracting text and data from various file formats using advanced OCR and document processing capabilities.
 
 Available tools:
-- document_ai_ocr_tool: Intelligently extract text content from multiple file formats using Google Cloud Document AI OCR and specialized text extraction methods
+- file_ingestion_tool: Intelligently extract text content from multiple file formats using Google Cloud Document AI OCR and specialized text extraction methods
 
 Supported file formats and processing methods:
 - PDF files (.pdf): Google Cloud Document AI OCR with high accuracy text extraction
@@ -21,7 +19,7 @@ Supported file formats and processing methods:
 
 Instructions:
 1. Analyze the input file and identify its format based on the file extension
-2. Use the document_ai_ocr_tool to process the file - it will automatically select the appropriate extraction method
+2. Use the file_ingestion_tool to process the file - it will automatically select the appropriate extraction method
 3. The tool will return:
    - Extracted text content from the entire document
    - File type information
@@ -43,5 +41,5 @@ data_ingestion_agent = Agent(
         "This is a data ingestion agent that ingests data from various file types and extract the data."
     ),
     instruction=prompt,
-    tools=[document_ai_ocr_tool],
+    tools=[file_ingestion_tool],
 )

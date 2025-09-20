@@ -6,6 +6,7 @@ Pillow
 pytesseract
 pandas
 python-pptx
+pdfplumber
 
 # Google Cloud dependencies for Document AI OCR
 google-cloud-documentai
