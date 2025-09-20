@@ -1,22 +1,24 @@
-google-adk==1.13.0
-python-dotenv
+# Core FastAPI and web framework
+fastapi
+uvicorn[standard]
 
-# Document processing dependencies
-PyMuPDF
-Pillow
-pytesseract
-pandas
-python-pptx
-pdfplumber
+# Google AI and Agent Development Kit
+google-adk
+google-genai
 
-# Google Cloud dependencies for Document AI OCR
-google-cloud-documentai
-google-cloud-vision
+# Google Cloud services
 google-cloud-storage
+google-cloud-vision
+google-cloud-documentai
 google-api-core
 
-# Document format processing
+# Document processing
 python-docx
 extract-msg
 
-db-dtypes
+# Environment and utilities
+python-dotenv
+pydantic
+
+# CORS middleware
+python-multipart
