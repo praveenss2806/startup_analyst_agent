@@ -8,6 +8,20 @@ from google.cloud import storage
 from pathlib import Path
 import uvicorn
 import uuid
+import os
+import json
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Set the Google AI API key from environment variable
+api_key = os.getenv("GOOGLE_API_KEY")
+if not api_key:
+    raise ValueError("GOOGLE_API_KEY environment variable is required")
+
+# Set the API key for Google AI
+os.environ["GOOGLE_API_KEY"] = api_key
 
 app = FastAPI()
 
@@ -102,8 +116,7 @@ async def upload_file(
 
 @app.post('/agent')
 async def getStartupAnalysis(
-    component: str = Form(...),
-    gcs_url: str = Form(None)
+    gcs_url: str = Form(...)
 ):
     try:
         app_name = "agent"
@@ -116,31 +129,14 @@ async def getStartupAnalysis(
                     session_id=session_id
                 )
         
-        # Store GCS URL in session state if provided
-        if gcs_url:
-            session_state = await session_service.get_session_state(
-                app_name=app_name,
-                user_id=user_id,
-                session_id=session_id
-            )
-            session_state['gcs_file_url'] = gcs_url
-            await session_service.update_session_state(
-                app_name=app_name,
-                user_id=user_id,
-                session_id=session_id,
-                state=session_state
-            )
-        
         agent_runner = Runner(
            app_name=app_name,
            agent=root_agent,
            session_service=session_service,
         )
         
-        # Include GCS URL in the message if provided
-        message_text = component
-        if gcs_url:
-            message_text += f"\n\nProcess this file from GCS: {gcs_url}"
+        # Process the file from GCS
+        message_text = f"Process this file from GCS: {gcs_url}"
         
         content = types.Content(role="user", parts=[types.Part(text=message_text)])
         response_events = agent_runner.run_async(
@@ -153,7 +149,19 @@ async def getStartupAnalysis(
             if event.is_final_response():
                 result_text = event.content.parts[0].text
                 results.append(result_text)
-        return {"results": results, "session_id": session_id}
+        
+        # Get the last result and try to extract JSON from it
+        if results:
+            last_result = results[-1]
+            try:
+                # Try to parse the last result as JSON
+                json_data = json.loads(last_result)
+                return {"analysis": json_data, "session_id": session_id}
+            except (json.JSONDecodeError, ValueError):
+                # If not valid JSON, return the last result as text
+                return {"result": last_result, "session_id": session_id}
+        else:
+            return {"result": "No response received", "session_id": session_id}
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
