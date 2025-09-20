@@ -11,6 +11,7 @@ import uuid
 import os
 import json
 from dotenv import load_dotenv
+import base64
 
 # Load environment variables from .env file
 load_dotenv()
@@ -23,14 +24,39 @@ if not api_key:
 # Set the API key for Google AI
 os.environ["GOOGLE_API_KEY"] = api_key
 
+# Get Google Cloud configuration from environment variables
+GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "quiet-sum-470418-r7")
+GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "genai-hackathon-2025")
+
+# Handle Google Cloud credentials
+GOOGLE_APPLICATION_CREDENTIALS_BASE_64 = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_BASE_64")
+
+if GOOGLE_APPLICATION_CREDENTIALS_BASE_64:
+    # For production (Vercel) - create temporary file from base64 credentials
+    import tempfile
+    credentials_json = base64.b64decode(GOOGLE_APPLICATION_CREDENTIALS_BASE_64).decode('utf-8')
+    
+    # Create a temporary file for the credentials
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
+        temp_file.write(credentials_json)
+        temp_credentials_path = temp_file.name
+    
+    # Set the environment variable to the temporary file path
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_credentials_path
+else:
+    # For local development - use existing file path
+    local_creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "service_account_key.json")
+    if os.path.exists(local_creds_path):
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = local_creds_path
+
 app = FastAPI()
 
 def upload_file_to_gcs(bucket_name, file_obj, destination_blob_name):
     """Uploads a file object directly to a Google Cloud Storage bucket and returns public URL."""
     
     # Initialize the client. This will use your GOOGLE_APPLICATION_CREDENTIALS
-    # environment variable for authentication.
-    storage_client = storage.Client(project='quiet-sum-470418-r7')
+    # environment variable for authentication, or Application Default Credentials.
+    storage_client = storage.Client(project=GOOGLE_CLOUD_PROJECT)
     
     # Get the target bucket.
     bucket = storage_client.bucket(bucket_name)
@@ -95,9 +121,8 @@ async def upload_file(
             final_file_name = file_name
         
         # Upload directly to Google Cloud Storage
-        bucket_name = "genai-hackathon-2025"
         gcs_result = upload_file_to_gcs(
-            bucket_name=bucket_name,
+            bucket_name=GCS_BUCKET_NAME,
             file_obj=file.file,
             destination_blob_name=final_file_name
         )
