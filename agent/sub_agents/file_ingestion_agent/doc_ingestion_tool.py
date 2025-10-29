@@ -19,7 +19,7 @@ from google.adk.tools import ToolContext
 import logging
 
 
-def file_ingestion_tool(file_path: str, tool_context: ToolContext) -> Dict[str, Any]:
+def doc_ingestion_tool(file_path: str, tool_context: ToolContext) -> Dict[str, Any]:
     """
     Intelligently processes documents using Google Cloud Document AI OCR and other text extraction methods.
     Provides comprehensive document analysis including content categorization, key information extraction,
@@ -164,7 +164,11 @@ def file_ingestion_tool(file_path: str, tool_context: ToolContext) -> Dict[str, 
         content_analysis = _extract_key_information(extracted_text, file_extension, filename)
         
         # Store extracted data in tool context
-        tool_context.state['startup_information'] = extracted_text
+        if "startup_information" in tool_context.state:
+            tool_context.state["startup_information"] += "\n\n\n\n\n" + extracted_text
+        else:
+            tool_context.state["startup_information"] = extracted_text
+        
         tool_context.state['file_path'] = file_path
         tool_context.state['file_type'] = file_extension
         tool_context.state['processing_method'] = processing_method
