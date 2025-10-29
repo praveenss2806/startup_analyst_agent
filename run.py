@@ -86,8 +86,7 @@ def upload_file_to_gcs(bucket_name, file_obj, destination_blob_name):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000", 
-        "http://127.0.0.1:3000",
+        "*"
     ],
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -190,8 +189,3 @@ async def getStartupAnalysis(
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
-
-if __name__ == "__main__":
-    uvicorn.run(
-        "run:app", host="0.0.0.0", port=8080, http="h11", reload=True
-    )
