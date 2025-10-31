@@ -25,7 +25,7 @@ if not api_key:
 os.environ["GOOGLE_API_KEY"] = api_key
 
 # Get Google Cloud configuration from environment variables
-GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "quiet-sum-470418-r7")
+GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "woven-perigee-476815-m8")
 GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "genai-hackathon-2025")
 
 # Handle Google Cloud credentials

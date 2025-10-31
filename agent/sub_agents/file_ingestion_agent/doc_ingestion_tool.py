@@ -40,7 +40,7 @@ def doc_ingestion_tool(file_path: str, tool_context: ToolContext) -> Dict[str, A
     """
     try:
         # Google Cloud Document AI configuration
-        PROJECT_ID = "quiet-sum-470418-r7"
+        PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "woven-perigee-476815-m8")
         LOCATION = "us"
         PROCESSOR_ID = "abb1ab40cbac8a9c"
         
@@ -196,37 +196,118 @@ def doc_ingestion_tool(file_path: str, tool_context: ToolContext) -> Dict[str, A
         }
 
 
+# def _ocr_pdf_document(project_id: str, location: str, processor_id: str, file_path: str) -> str:
+#     """
+#     Performs OCR on a local PDF file using the Google Cloud Document AI API.
+#     """
+#     try:
+#         client_options = ClientOptions(api_endpoint=f"{location}-documentai.googleapis.com")
+#         client = documentai.DocumentProcessorServiceClient(client_options=client_options)
+        
+#         processor_name = client.processor_path(project_id, location, processor_id)
+        
+#         with open(file_path, "rb") as document_file:
+#             document_content = document_file.read()
+        
+#         raw_document = documentai.RawDocument(
+#             content=document_content,
+#             mime_type="application/pdf"
+#         )
+        
+#         request = documentai.ProcessRequest(
+#             name=processor_name,
+#             raw_document=raw_document,
+#             imageless_mode=True
+#         )
+        
+#         response = client.process_document(request=request)
+#         document = response.document
+        
+#         return document.text
+        
+#     except Exception as e:
+#         raise Exception(f"Error processing PDF with Document AI: {e}")
+        
 def _ocr_pdf_document(project_id: str, location: str, processor_id: str, file_path: str) -> str:
     """
-    Performs OCR on a local PDF file using the Google Cloud Document AI API.
+    Performs OCR on a local PDF file using Google Cloud Document AI API.
+    Automatically switches to batch processing for large PDFs (>30 pages).
     """
     try:
         client_options = ClientOptions(api_endpoint=f"{location}-documentai.googleapis.com")
         client = documentai.DocumentProcessorServiceClient(client_options=client_options)
-        
         processor_name = client.processor_path(project_id, location, processor_id)
-        
+
         with open(file_path, "rb") as document_file:
             document_content = document_file.read()
-        
-        raw_document = documentai.RawDocument(
-            content=document_content,
-            mime_type="application/pdf"
-        )
-        
-        request = documentai.ProcessRequest(
-            name=processor_name,
-            raw_document=raw_document,
-            imageless_mode=True
-        )
-        
-        response = client.process_document(request=request)
-        document = response.document
-        
-        return document.text
-        
+
+        # --- First, use normal sync processing for small docs ---
+        try:
+            raw_document = documentai.RawDocument(
+                content=document_content,
+                mime_type="application/pdf"
+            )
+
+            request = documentai.ProcessRequest(
+                name=processor_name,
+                raw_document=raw_document
+            )
+
+            response = client.process_document(request=request)
+            return response.document.text
+
+        except Exception as sync_err:
+            # --- If we hit a page limit or large file, use async batch processing ---
+            logging.warning(f"Switching to async batch processing: {sync_err}")
+
+            storage_client = storage.Client(project=project_id)
+            bucket_name = f"{project_id}-documentai-temp"
+            
+            # Ensure bucket exists
+            try:
+                bucket = storage_client.get_bucket(bucket_name)
+            except Exception:
+                bucket = storage_client.create_bucket(bucket_name)
+
+            input_blob_name = f"input/{os.path.basename(file_path)}"
+            output_blob_prefix = f"output/{os.path.splitext(os.path.basename(file_path))[0]}"
+
+            blob = bucket.blob(input_blob_name)
+            blob.upload_from_filename(file_path)
+
+            gcs_input_uri = f"gs://{bucket_name}/{input_blob_name}"
+            gcs_output_uri = f"gs://{bucket_name}/{output_blob_prefix}/"
+
+            input_config = documentai.GcsDocument(
+                gcs_uri=gcs_input_uri, mime_type="application/pdf"
+            )
+            gcs_documents = documentai.GcsDocuments(documents=[input_config])
+            input_doc = documentai.BatchDocumentsInputConfig(gcs_documents=gcs_documents)
+            output_config = documentai.DocumentOutputConfig(
+                gcs_output_config=documentai.DocumentOutputConfig.GcsOutputConfig(gcs_uri=gcs_output_uri)
+            )
+
+            request = documentai.BatchProcessRequest(
+                name=processor_name,
+                input_documents=input_doc,
+                document_output_config=output_config
+            )
+
+            operation = client.batch_process_documents(request)
+            operation.result(timeout=1800)  # Wait up to 30 minutes
+
+            # Read processed result from GCS
+            blobs = list(bucket.list_blobs(prefix=f"output/{os.path.splitext(os.path.basename(file_path))[0]}"))
+            for blob in blobs:
+                if blob.name.endswith(".json"):
+                    result_json = blob.download_as_text()
+                    result_obj = json.loads(result_json)
+                    return result_obj.get("document", {}).get("text", "")
+
+            return ""
+
     except Exception as e:
-        raise Exception(f"Error processing PDF with Document AI: {e}")
+        raise Exception(f"Error processing PDF with Document AI (extended mode): {e}")
 
 
 def _ocr_img(project_id: str, location: str, processor_id: str, file_path: str) -> str:
@@ -315,49 +396,115 @@ def _get_text_from_eml(file_path: str) -> str:
 
 
 # GCS-specific functions
+# def _ocr_pdf_document_gcs(project_id: str, location: str, processor_id: str, gcs_uri: str) -> str:
+#     """
+#     Performs OCR on a PDF file stored in Google Cloud Storage using Document AI.
+#     """
+#     try:
+#         client_options = ClientOptions(api_endpoint=f"{location}-documentai.googleapis.com")
+#         client = documentai.DocumentProcessorServiceClient(client_options=client_options)
+        
+#         processor_name = client.processor_path(project_id, location, processor_id)
+        
+#         # Download the file temporarily for processing
+#         bucket_name = gcs_uri.split('/')[2]
+#         blob_name = '/'.join(gcs_uri.split('/')[3:])
+        
+#         storage_client = storage.Client(project=project_id)
+#         bucket = storage_client.bucket(bucket_name)
+#         blob = bucket.blob(blob_name)
+        
+#         # Download to temporary file
+#         with tempfile.NamedTemporaryFile(suffix='.pdf') as temp_file:
+#             blob.download_to_filename(temp_file.name)
+            
+#             with open(temp_file.name, "rb") as document_file:
+#                 document_content = document_file.read()
+            
+#             raw_document = documentai.RawDocument(
+#                 content=document_content,
+#                 mime_type="application/pdf"
+#             )
+            
+#             request = documentai.ProcessRequest(
+#                 name=processor_name,
+#                 raw_document=raw_document,
+#                 imageless_mode=True
+#             )
+            
+#             response = client.process_document(request=request)
+#             document = response.document
+            
+#             return document.text
+        
+#     except Exception as e:
+#         raise Exception(f"Error processing PDF from GCS with Document AI: {e}")
+
 def _ocr_pdf_document_gcs(project_id: str, location: str, processor_id: str, gcs_uri: str) -> str:
     """
     Performs OCR on a PDF file stored in Google Cloud Storage using Document AI.
+    Automatically switches to batch processing for large PDFs (>30 pages).
     """
     try:
         client_options = ClientOptions(api_endpoint=f"{location}-documentai.googleapis.com")
         client = documentai.DocumentProcessorServiceClient(client_options=client_options)
-        
         processor_name = client.processor_path(project_id, location, processor_id)
-        
-        # Download the file temporarily for processing
-        bucket_name = gcs_uri.split('/')[2]
-        blob_name = '/'.join(gcs_uri.split('/')[3:])
-        
-        storage_client = storage.Client(project=project_id)
-        bucket = storage_client.bucket(bucket_name)
-        blob = bucket.blob(blob_name)
-        
-        # Download to temporary file
-        with tempfile.NamedTemporaryFile(suffix='.pdf') as temp_file:
-            blob.download_to_filename(temp_file.name)
-            
-            with open(temp_file.name, "rb") as document_file:
-                document_content = document_file.read()
-            
-            raw_document = documentai.RawDocument(
-                content=document_content,
+
+        # --- Attempt normal sync processing first ---
+        try:
+            input_doc = documentai.DocumentInputConfig(
+                gcs_source=documentai.GcsSource(uri=gcs_uri),
                 mime_type="application/pdf"
             )
-            
+
             request = documentai.ProcessRequest(
                 name=processor_name,
-                raw_document=raw_document,
-                imageless_mode=True
+                input_documents=documentai.BatchDocumentsInputConfig(
+                    gcs_documents=documentai.GcsDocuments(documents=[documentai.GcsDocument(gcs_uri=gcs_uri, mime_type="application/pdf")])
+                )
             )
-            
+
             response = client.process_document(request=request)
-            document = response.document
-            
-            return document.text
-        
+            return response.document.text
+
+        except Exception as sync_err:
+            logging.warning(f"Switching to async batch processing for GCS file: {sync_err}")
+
+            gcs_output_uri = re.sub(r'/[^/]+$', '/output/', gcs_uri)
+
+            input_config = documentai.GcsDocument(gcs_uri=gcs_uri, mime_type="application/pdf")
+            gcs_documents = documentai.GcsDocuments(documents=[input_config])
+            input_doc = documentai.BatchDocumentsInputConfig(gcs_documents=gcs_documents)
+            output_config = documentai.DocumentOutputConfig(
+                gcs_output_config=documentai.DocumentOutputConfig.GcsOutputConfig(gcs_uri=gcs_output_uri)
+            )
+
+            request = documentai.BatchProcessRequest(
+                name=processor_name,
+                input_documents=input_doc,
+                document_output_config=output_config
+            )
+
+            operation = client.batch_process_documents(request)
+            operation.result(timeout=1800)
+
+            # Read result JSON from GCS
+            storage_client = storage.Client(project=project_id)
+            bucket_name = gcs_uri.split('/')[2]
+            prefix = '/'.join(gcs_output_uri.split('/')[3:])
+            bucket = storage_client.bucket(bucket_name)
+            blobs = list(bucket.list_blobs(prefix=prefix))
+
+            for blob in blobs:
+                if blob.name.endswith(".json"):
+                    result_json = blob.download_as_text()
+                    result_obj = json.loads(result_json)
+                    return result_obj.get("document", {}).get("text", "")
+
+            return ""
+
     except Exception as e:
-        raise Exception(f"Error processing PDF from GCS with Document AI: {e}")
+        raise Exception(f"Error processing PDF from GCS with Document AI (extended mode): {e}")
 
 
 def _ocr_img_gcs(project_id: str, location: str, processor_id: str, gcs_uri: str) -> str:
