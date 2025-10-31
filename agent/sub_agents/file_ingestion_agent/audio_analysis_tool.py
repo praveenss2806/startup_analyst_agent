@@ -49,7 +49,7 @@ def audio_analysis_tool(file_path: str, prompt: str, tool_context: ToolContext) 
     file_extension = file_extension.lower()
     
     # Project ID for GCS operations (same as doc_ingestion_tool)
-    PROJECT_ID = "quiet-sum-470418-r7"
+    PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "woven-perigee-476815-m8")
 
     try:
         # Get file size

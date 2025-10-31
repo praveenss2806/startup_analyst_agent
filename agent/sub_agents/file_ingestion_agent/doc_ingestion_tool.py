@@ -40,9 +40,9 @@ def doc_ingestion_tool(file_path: str, tool_context: ToolContext) -> Dict[str, A
     """
     try:
         # Google Cloud Document AI configuration
-        PROJECT_ID = "quiet-sum-470418-r7"
+        PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "woven-perigee-476815-m8")
         LOCATION = "us"
-        PROCESSOR_ID = "abb1ab40cbac8a9c"
+        PROCESSOR_ID = "c39b3330ea264596"
         
         # Check if file_path is a GCS URL or local path
         is_gcs_url = file_path.startswith('gs://') or file_path.startswith('https://storage.googleapis.com/')
